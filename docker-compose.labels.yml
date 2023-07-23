@@ -1,0 +1,14 @@
+version: "3.8"
+
+services:
+  traefik:
+    labels:
+      - traefik.http.routers.api.rule=Host(`${HOST}`)
+      - traefik.http.routers.api.entryPoints=traefik
+      - traefik.http.routers.api.service=api@internal
+
+  streamlit:
+    labels:
+      - traefik.http.routers.streamlit.rule=Host(`${HOST}`)
+      - traefik.http.routers.streamlit.entryPoints=streamlit
+      - traefik.http.services.streamlit.loadbalancer.server.port=8501

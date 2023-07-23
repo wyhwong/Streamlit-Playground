@@ -1,0 +1,57 @@
+version: "3.8"
+
+x-env:
+  # Analyzer
+  &env
+  - LOGLEVEL=${LOGLEVEL}
+
+  - BINANCE_API_KEY=${BINANCE_API_KEY}
+  - BINANCE_API_SECRET=${BINANCE_API_SECRET}
+
+x-build-args: &build-args
+  USERNAME: ${USERNAME}
+  USER_ID: ${USER_ID}
+  GROUP_ID: ${GROUP_ID}
+  TZ: ${TZ}
+
+services:
+  streamlit:
+    image: local/streamlit:${VERSION}
+    hostname: streamlit
+    container_name: streamlit
+    build:
+      context: ./streamlit/
+      args: *build-args
+    networks:
+      - docker_network
+    environment: *env
+    restart: on-failure:2
+    volumes:
+      - ./streamlit:/home/${USERNAME}/app
+    command: streamlit run main.py --server.enableCORS false --server.enableXsrfProtection false
+
+  traefik:
+    image: traefik:2.5
+    hostname: traefik
+    container_name: traefik
+    networks:
+      - docker_network
+    environment: *env
+    restart: always
+    ports:
+      - 1001:1001
+      - 1002:1002
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./traefik:/traefik
+    command:
+      - --api.insecure=true
+      - --api.dashboard=true
+      - --entryPoints.traefik.address=:1001
+      - --entryPoints.streamlit.address=:1002
+      - --providers.docker=true
+
+networks:
+  docker_network:
+    name: ${DOCKER_NETWORK_NAME}
+    external: true
